@@ -39,4 +39,12 @@ app.MapGet("/courses/{id}", async (StudentEnrollmentDbContext context, int id) =
     return await context.Courses.FindAsync(id) is Course course ? Results.Ok(course) : Results.NotFound();
 });
 
+app.MapPost("/courses", async (StudentEnrollmentDbContext context, Course course) =>
+{
+    await context.AddAsync(course);
+    await context.SaveChangesAsync();
+
+    return Results.Created($"/courses/{course.Id}", course);
+});
+
 app.Run();
