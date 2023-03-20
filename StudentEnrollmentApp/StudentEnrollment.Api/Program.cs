@@ -35,4 +35,8 @@ app.MapGet("/courses", async (StudentEnrollmentDbContext context) => {
     return await context.Courses.ToListAsync();
 });
 
+app.MapGet("/courses/{id}", async (StudentEnrollmentDbContext context, int id) => {
+    return await context.Courses.FindAsync(id) is Course course ? Results.Ok(course) : Results.NotFound();
+});
+
 app.Run();
