@@ -47,4 +47,15 @@ app.MapPost("/courses", async (StudentEnrollmentDbContext context, Course course
     return Results.Created($"/courses/{course.Id}", course);
 });
 
+app.MapPut("/courses/{id}", async (StudentEnrollmentDbContext context, Course course, int id) =>
+{
+    var recordExists = await context.Courses.AnyAsync(q => q.Id == course.Id);
+    if (!recordExists) return Results.NotFound();
+
+    context.Update(course);
+    await context.SaveChangesAsync();
+
+    return Results.NoContent();
+});
+
 app.Run();
