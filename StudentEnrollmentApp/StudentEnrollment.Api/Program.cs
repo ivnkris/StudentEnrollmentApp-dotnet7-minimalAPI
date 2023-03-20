@@ -58,4 +58,15 @@ app.MapPut("/courses/{id}", async (StudentEnrollmentDbContext context, Course co
     return Results.NoContent();
 });
 
+app.MapDelete("/courses/{id}", async (StudentEnrollmentDbContext context, int id) =>
+{
+    var record = await context.Courses.FindAsync(id);
+    if (record == null) return Results.NotFound();
+
+    context.Remove(record);
+    await context.SaveChangesAsync();
+
+    return Results.NoContent();
+});
+
 app.Run();
