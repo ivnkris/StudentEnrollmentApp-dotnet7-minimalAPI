@@ -1,8 +1,7 @@
 ﻿namespace StudentEnrollment.Api.DTOs.Course
 {
-    public class CourseDto
+    public class CreateCourseDto
     {
-        public int Id { get; set; }
         public string Title { get; set; }
         public int Credits { get; set; }
     }

@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Http.HttpResults;
 using StudentEnrollment.Data;
 using AutoMapper;
 using StudentEnrollment.Api.DTOs.Student;
+using StudentEnrollment.Api.DTOs.Course;
 
 namespace StudentEnrollment.Api.Endpoints;
 
@@ -30,33 +31,27 @@ public static class StudentEndpoints
         .WithName("GetStudentById")
         .WithOpenApi();
 
-        group.MapPut("/{id}", async Task<Results<Ok, NotFound>> (int id, Student student, StudentEnrollmentDbContext db) =>
+        group.MapPut("/{id}", async Task<Results<Ok, NotFound>> (int id, StudentDto studentDto, StudentEnrollmentDbContext db, IMapper mapper) =>
         {
-            var affected = await db.Students
-                .Where(model => model.Id == id)
-                .ExecuteUpdateAsync(setters => setters
-                  .SetProperty(m => m.FirstName, student.FirstName)
-                  .SetProperty(m => m.LastName, student.LastName)
-                  .SetProperty(m => m.DateofBirth, student.DateofBirth)
-                  .SetProperty(m => m.IdNumber, student.IdNumber)
-                  .SetProperty(m => m.Picture, student.Picture)
-                  .SetProperty(m => m.Id, student.Id)
-                  .SetProperty(m => m.CreatedDate, student.CreatedDate)
-                  .SetProperty(m => m.CreatedBy, student.CreatedBy)
-                  .SetProperty(m => m.ModifiedDate, student.ModifiedDate)
-                  .SetProperty(m => m.ModifiedBy, student.ModifiedBy)
-                );
+            var foundModel = await db.Students.FindAsync(id);
 
-            return affected == 1 ? TypedResults.Ok() : TypedResults.NotFound();
+            if (foundModel != null)
+            {
+                mapper.Map(studentDto, foundModel);
+                await db.SaveChangesAsync();
+                return TypedResults.Ok();
+            }
+            return TypedResults.NotFound();
         })
         .WithName("UpdateStudent")
         .WithOpenApi();
 
         group.MapPost("/", async (CreateStudentDto studentDto, StudentEnrollmentDbContext db, IMapper mapper) =>
         {
-            db.Students.Add(mapper.Map<Student>(studentDto));
+            var student = mapper.Map<Student>(studentDto);
+            db.Students.Add(student);
             await db.SaveChangesAsync();
-            return TypedResults.Created($"{studentDto.FirstName} {studentDto.LastName}", studentDto);
+            return TypedResults.Created($"/api/Course/{student.Id}", student);
         })
         .WithName("CreateStudent")
         .WithOpenApi();

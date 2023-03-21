@@ -3,7 +3,6 @@ using Microsoft.AspNetCore.Http.HttpResults;
 using StudentEnrollment.Data;
 using StudentEnrollment.Api.DTOs.Course;
 using AutoMapper;
-using System.Security.Principal;
 
 namespace StudentEnrollment.Api.Endpoints;
 
@@ -31,21 +30,17 @@ public static class CourseEndpoints
         .WithName("GetCourseById")
         .WithOpenApi();
 
-        group.MapPut("/{id}", async Task<Results<Ok, NotFound>> (int id, Course course, StudentEnrollmentDbContext db) =>
+        group.MapPut("/{id}", async Task<Results<Ok, NotFound>> (int id, CourseDto courseDto, StudentEnrollmentDbContext db, IMapper mapper) =>
         {
-            var affected = await db.Courses
-                .Where(model => model.Id == id)
-                .ExecuteUpdateAsync(setters => setters
-                  .SetProperty(m => m.Title, course.Title)
-                  .SetProperty(m => m.Credits, course.Credits)
-                  .SetProperty(m => m.Id, course.Id)
-                  .SetProperty(m => m.CreatedDate, course.CreatedDate)
-                  .SetProperty(m => m.CreatedBy, course.CreatedBy)
-                  .SetProperty(m => m.ModifiedDate, course.ModifiedDate)
-                  .SetProperty(m => m.ModifiedBy, course.ModifiedBy)
-                );
+            var foundModel = await db.Courses.FindAsync(id);
 
-            return affected == 1 ? TypedResults.Ok() : TypedResults.NotFound();
+            if (foundModel != null)
+            {
+                mapper.Map(courseDto, foundModel);
+                await db.SaveChangesAsync();
+                return TypedResults.Ok();
+            }
+            return TypedResults.NotFound();
         })
         .WithName("UpdateCourse")
         .WithOpenApi();
