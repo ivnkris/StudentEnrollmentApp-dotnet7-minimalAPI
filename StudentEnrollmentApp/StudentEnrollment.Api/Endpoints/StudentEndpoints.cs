@@ -1,6 +1,8 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Http.HttpResults;
 using StudentEnrollment.Data;
+using AutoMapper;
+using StudentEnrollment.Api.DTOs.Student;
 
 namespace StudentEnrollment.Api.Endpoints;
 
@@ -10,20 +12,20 @@ public static class StudentEndpoints
     {
         var group = routes.MapGroup("/api/Student").WithTags(nameof(Student));
 
-        group.MapGet("/", async (StudentEnrollmentDbContext db) =>
+        group.MapGet("/", async (StudentEnrollmentDbContext db, IMapper mapper) =>
         {
-            return await db.Students.ToListAsync();
+            var students = await db.Students.ToListAsync();
+            return mapper.Map<List<StudentDto>>(students);
         })
         .WithName("GetAllStudents")
         .WithOpenApi();
 
-        group.MapGet("/{id}", async Task<Results<Ok<Student>, NotFound>> (int id, StudentEnrollmentDbContext db) =>
+        group.MapGet("/{id}", async Task<Results<Ok<StudentDto>, NotFound>> (int id, StudentEnrollmentDbContext db, IMapper mapper) =>
         {
-            return await db.Students.AsNoTracking()
-                .FirstOrDefaultAsync(model => model.Id == id)
-                is Student model
-                    ? TypedResults.Ok(model)
-                    : TypedResults.NotFound();
+            var student = await db.Students.AsNoTracking().FirstOrDefaultAsync(model => model.Id == id);
+
+            if (student != null) return TypedResults.Ok(mapper.Map<StudentDto>(student));
+            return TypedResults.NotFound();
         })
         .WithName("GetStudentById")
         .WithOpenApi();
@@ -50,11 +52,11 @@ public static class StudentEndpoints
         .WithName("UpdateStudent")
         .WithOpenApi();
 
-        group.MapPost("/", async (Student student, StudentEnrollmentDbContext db) =>
+        group.MapPost("/", async (CreateStudentDto studentDto, StudentEnrollmentDbContext db, IMapper mapper) =>
         {
-            db.Students.Add(student);
+            db.Students.Add(mapper.Map<Student>(studentDto));
             await db.SaveChangesAsync();
-            return TypedResults.Created($"/api/Student/{student.Id}", student);
+            return TypedResults.Created($"{studentDto.FirstName} {studentDto.LastName}", studentDto);
         })
         .WithName("CreateStudent")
         .WithOpenApi();

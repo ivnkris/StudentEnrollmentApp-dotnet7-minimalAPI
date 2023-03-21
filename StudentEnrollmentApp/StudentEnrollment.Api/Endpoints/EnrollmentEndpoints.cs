@@ -2,6 +2,8 @@
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.OpenApi;
 using StudentEnrollment.Data;
+using AutoMapper;
+using StudentEnrollment.Api.DTOs.Enrollment;
 
 namespace StudentEnrollment.Api.Endpoints;
 
@@ -11,20 +13,19 @@ public static class EnrollmentEndpoints
     {
         var group = routes.MapGroup("/api/Enrollment").WithTags(nameof(Enrollment));
 
-        group.MapGet("/", async (StudentEnrollmentDbContext db) =>
+        group.MapGet("/", async (StudentEnrollmentDbContext db, IMapper mapper) =>
         {
-            return await db.Enrollments.ToListAsync();
+            var enrollments = await db.Enrollments.ToListAsync();
+            return mapper.Map<List<EnrollmentDto>>(enrollments);
         })
         .WithName("GetAllEnrollments")
         .WithOpenApi();
 
-        group.MapGet("/{id}", async Task<Results<Ok<Enrollment>, NotFound>> (int id, StudentEnrollmentDbContext db) =>
+        group.MapGet("/{id}", async Task<Results<Ok<EnrollmentDto>, NotFound>> (int id, StudentEnrollmentDbContext db, IMapper mapper) =>
         {
-            return await db.Enrollments.AsNoTracking()
-                .FirstOrDefaultAsync(model => model.Id == id)
-                is Enrollment model
-                    ? TypedResults.Ok(model)
-                    : TypedResults.NotFound();
+            var enrollment = await db.Enrollments.AsNoTracking().FirstOrDefaultAsync(model => model.Id == id);
+            if (enrollment != null) return TypedResults.Ok(mapper.Map<EnrollmentDto>(enrollment));
+            return TypedResults.NotFound();
         })
         .WithName("GetEnrollmentById")
         .WithOpenApi();
@@ -48,11 +49,11 @@ public static class EnrollmentEndpoints
         .WithName("UpdateEnrollment")
         .WithOpenApi();
 
-        group.MapPost("/", async (Enrollment enrollment, StudentEnrollmentDbContext db) =>
+        group.MapPost("/", async (CreateEnrollmentDto enrollmentDto, StudentEnrollmentDbContext db, IMapper mapper) =>
         {
-            db.Enrollments.Add(enrollment);
+            db.Enrollments.Add(mapper.Map<Enrollment>(enrollmentDto));
             await db.SaveChangesAsync();
-            return TypedResults.Created($"/api/Enrollment/{enrollment.Id}", enrollment);
+            return TypedResults.Created($"CourseId: {enrollmentDto.CourseId}, StudentId: {enrollmentDto.StudentId}", enrollmentDto);
         })
         .WithName("CreateEnrollment")
         .WithOpenApi();

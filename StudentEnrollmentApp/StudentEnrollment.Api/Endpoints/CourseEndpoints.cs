@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Http.HttpResults;
 using StudentEnrollment.Data;
 using StudentEnrollment.Api.DTOs.Course;
 using AutoMapper;
+using System.Security.Principal;
 
 namespace StudentEnrollment.Api.Endpoints;
 
@@ -20,13 +21,12 @@ public static class CourseEndpoints
         .WithName("GetAllCourses")
         .WithOpenApi();
 
-        group.MapGet("/{id}", async Task<Results<Ok<Course>, NotFound>> (int id, StudentEnrollmentDbContext db, IMapper mapper) =>
+        group.MapGet("/{id}", async Task<Results<Ok<CourseDto>, NotFound>> (int id, StudentEnrollmentDbContext db, IMapper mapper) =>
         {
-            return await db.Courses.AsNoTracking()
-                .FirstOrDefaultAsync(model => model.Id == id)
-                is Course model
-                    ? TypedResults.Ok(model)
-                    : TypedResults.NotFound();
+            var course = await db.Courses.AsNoTracking().FirstOrDefaultAsync(model => model.Id == id);
+
+            if (course != null) return TypedResults.Ok(mapper.Map<CourseDto>(course));
+            return TypedResults.NotFound();
         })
         .WithName("GetCourseById")
         .WithOpenApi();
