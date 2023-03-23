@@ -3,7 +3,7 @@ using Microsoft.AspNetCore.Http.HttpResults;
 using StudentEnrollment.Data;
 using AutoMapper;
 using StudentEnrollment.Api.DTOs.Student;
-using StudentEnrollment.Api.DTOs.Course;
+using StudentEnrollment.Data.Contracts;
 
 namespace StudentEnrollment.Api.Endpoints;
 
@@ -13,17 +13,17 @@ public static class StudentEndpoints
     {
         var group = routes.MapGroup("/api/Student").WithTags(nameof(Student));
 
-        group.MapGet("/", async (StudentEnrollmentDbContext db, IMapper mapper) =>
+        group.MapGet("/", async (IStudentRepository repo, IMapper mapper) =>
         {
-            var students = await db.Students.ToListAsync();
+            var students = await repo.GetAllAsync();
             return mapper.Map<List<StudentDto>>(students);
         })
         .WithName("GetAllStudents")
         .WithOpenApi();
 
-        group.MapGet("/{id}", async Task<Results<Ok<StudentDto>, NotFound>> (int id, StudentEnrollmentDbContext db, IMapper mapper) =>
+        group.MapGet("/{id}", async Task<Results<Ok<StudentDto>, NotFound>> (int id, IStudentRepository repo, IMapper mapper) =>
         {
-            var student = await db.Students.AsNoTracking().FirstOrDefaultAsync(model => model.Id == id);
+            var student = await repo.GetAsync(id);
 
             if (student != null) return TypedResults.Ok(mapper.Map<StudentDto>(student));
             return TypedResults.NotFound();
@@ -31,14 +31,14 @@ public static class StudentEndpoints
         .WithName("GetStudentById")
         .WithOpenApi();
 
-        group.MapPut("/{id}", async Task<Results<Ok, NotFound>> (int id, StudentDto studentDto, StudentEnrollmentDbContext db, IMapper mapper) =>
+        group.MapPut("/{id}", async Task<Results<Ok, NotFound>> (int id, StudentDto studentDto, IStudentRepository repo, IMapper mapper) =>
         {
-            var foundModel = await db.Students.FindAsync(id);
+            var foundModel = await repo.GetAsync(id);
 
             if (foundModel != null)
             {
                 mapper.Map(studentDto, foundModel);
-                await db.SaveChangesAsync();
+                await repo.UpdateAsync(foundModel);
                 return TypedResults.Ok();
             }
             return TypedResults.NotFound();
@@ -46,23 +46,18 @@ public static class StudentEndpoints
         .WithName("UpdateStudent")
         .WithOpenApi();
 
-        group.MapPost("/", async (CreateStudentDto studentDto, StudentEnrollmentDbContext db, IMapper mapper) =>
+        group.MapPost("/", async (CreateStudentDto studentDto, IStudentRepository repo, IMapper mapper) =>
         {
             var student = mapper.Map<Student>(studentDto);
-            db.Students.Add(student);
-            await db.SaveChangesAsync();
+            await repo.AddAsync(student);
             return TypedResults.Created($"/api/Course/{student.Id}", student);
         })
         .WithName("CreateStudent")
         .WithOpenApi();
 
-        group.MapDelete("/{id}", async Task<Results<Ok, NotFound>> (int id, StudentEnrollmentDbContext db) =>
+        group.MapDelete("/{id}", async (int id, IStudentRepository repo) =>
         {
-            var affected = await db.Students
-                .Where(model => model.Id == id)
-                .ExecuteDeleteAsync();
-
-            return affected == 1 ? TypedResults.Ok() : TypedResults.NotFound();
+            return await repo.DeleteAsync(id) ? Results.NoContent() : Results.NotFound();
         })
         .WithName("DeleteStudent")
         .WithOpenApi();
