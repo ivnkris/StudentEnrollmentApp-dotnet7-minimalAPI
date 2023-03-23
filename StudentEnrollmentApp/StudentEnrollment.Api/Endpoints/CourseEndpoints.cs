@@ -31,6 +31,16 @@ public static class CourseEndpoints
         .WithName("GetCourseById")
         .WithOpenApi();
 
+        group.MapGet("/GetStudents/{id}", async Task<Results<Ok<CourseDetailsDto>, NotFound>> (int id, ICourseRepository repo, IMapper mapper) =>
+        {
+            var course = await repo.GetStudentList(id);
+
+            if (course != null) return TypedResults.Ok(mapper.Map<CourseDetailsDto>(course));
+            return TypedResults.NotFound();
+        })
+        .WithName("GetCourseDetailsById")
+        .WithOpenApi();
+
         group.MapPut("/{id}", async Task<Results<Ok, NotFound>> (int id, CourseDto courseDto, ICourseRepository repo, IMapper mapper) =>
         {
             var foundModel = await repo.GetAsync(id);
@@ -45,6 +55,7 @@ public static class CourseEndpoints
         })
         .WithName("UpdateCourse")
         .WithOpenApi();
+
 
         group.MapPost("/", async (CreateCourseDto courseDto, ICourseRepository repo, IMapper mapper) =>
         {
