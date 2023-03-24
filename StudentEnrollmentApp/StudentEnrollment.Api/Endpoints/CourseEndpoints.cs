@@ -1,5 +1,4 @@
-﻿using Microsoft.EntityFrameworkCore;
-using Microsoft.AspNetCore.Http.HttpResults;
+﻿using Microsoft.AspNetCore.Http.HttpResults;
 using StudentEnrollment.Data;
 using StudentEnrollment.Api.DTOs.Course;
 using AutoMapper;
